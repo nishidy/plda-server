@@ -8,6 +8,7 @@ https://code.google.com/p/plda/downloads/list
 
 #Requirement
 This uses pthread and socket.
+You need a model file (see the above URL about plda basics) in server side and input file with terms and frequencies (bag-of-words) in client side.
 
 #Usage example
 ./infer --alpha 0.1 --beta 0.01 --model_file enwiki-model.txt --burn_in_iterations 100 --total_iterations 150 --src_sock_port 5328 --daemonize --verbose
