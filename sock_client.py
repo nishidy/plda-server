@@ -27,12 +27,18 @@ def main():
 	clientsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	clientsock.connect((server,port))
 
+	rcvbuf = 1024
 	for line in open(options.filename,"r"):
 
 		stime=float(time())
 		
 		clientsock.sendall(line)
-		rcvmsg = clientsock.recv(1024)
+
+		rcvmsg=""
+		while True:
+			tmpmsg = clientsock.recv(rcvbuf)
+			if len(tmpmsg) < rcvbuf: break
+			rcvmsg += tmpmsg
 
 		etime=float(time())
 
@@ -40,8 +46,6 @@ def main():
 			print "%.3f sec elapsed to get the result." % (etime-stime)
 			print "Received from server[%s] (# of topics is %d): %s" % (server,len(rcvmsg.split()),rcvmsg)
 
-		if rcvmsg == '':
-			break
 
 	clientsock.close()
 
