@@ -43,8 +43,8 @@ def main():
 		etime=float(time())
 
 		if options.verbose:
-			print "%.3f sec elapsed to get the result." % (etime-stime)
 			print "Received from server[%s] (# of topics is %d): %s" % (server,len(rcvmsg.split()),rcvmsg)
+			print "%.3f sec elapsed to get the result." % (etime-stime)
 
 
 	clientsock.close()
