@@ -14,7 +14,6 @@ def main():
 	parser.add_option("-i","--dest_ip",dest="dest_ip",type="string",default="127.0.0.1",help="connect to DEST_IP")
 	parser.add_option("-p","--dest_port",dest="dest_port",type="int",default=5328,help="connect to DEST_PORT")
 	parser.add_option("-v","--verbose",action="store_true",default=False,help="verbose")
-	parser.add_option("-c","--cert_file",dest="cert_file",help="Server certification file", metavar="FILE")
 
 	(options, args) = parser.parse_args()
 
