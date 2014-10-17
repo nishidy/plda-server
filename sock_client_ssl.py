@@ -25,7 +25,7 @@ def main():
 	port   = options.dest_port
 
 	clientsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	ssl_clientsock = ssl.wrap_socket(clientsock)
+	ssl_clientsock = ssl.wrap_socket(clientsock, ssl_version=ssl.PROTOCOL_TLSv1)
 
 	ssl_clientsock.connect((server,port))
 
