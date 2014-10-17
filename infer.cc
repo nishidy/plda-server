@@ -271,7 +271,7 @@ SSL* setup_ssl(string cert_file, string key_file){
   SSL_load_error_strings();
   SSL_library_init();
 
-  SSL_CTX *ctx = SSL_CTX_new(SSLv3_server_method());
+  SSL_CTX *ctx = SSL_CTX_new(TLSv1_server_method());
   if(ctx == NULL){
 	  ERR_print_errors_fp(stderr);
 	  return NULL;
