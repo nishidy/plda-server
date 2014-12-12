@@ -38,6 +38,11 @@ class LDACmdLineFlags {
   int         burn_in_iterations_;
   int         total_iterations_;
   std::string compute_likelihood_;
+  int         src_sock_port_;
+  bool        verbose_;
+  bool        daemonize_;
+  std::string cert_file_;
+  std::string key_file_;
 };
 
 }  // namespace learning_lda

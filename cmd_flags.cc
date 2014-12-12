@@ -32,6 +32,11 @@ LDACmdLineFlags::LDACmdLineFlags() {
   burn_in_iterations_ = -1;
   total_iterations_ = -1;
   compute_likelihood_ = "false";
+  src_sock_port_ = 0;
+  verbose_ = false;
+  daemonize_ = false;
+  cert_file_ = "";
+  key_file_ = "";
 }
 
 void LDACmdLineFlags::ParseCmdFlags(int argc, char** argv) {
@@ -66,8 +71,20 @@ void LDACmdLineFlags::ParseCmdFlags(int argc, char** argv) {
     } else if (0 == strcmp(argv[i], "--compute_likelihood")) {
       compute_likelihood_ = argv[i+1];
       ++i;
+    } else if (0 == strcmp(argv[i], "--src_sock_port")) {
+      std::istringstream(argv[i+1]) >> src_sock_port_;
+      ++i;
+    } else if (0 == strcmp(argv[i], "--verbose")) {
+      verbose_ = true;
+    } else if (0 == strcmp(argv[i], "--daemonize")) {
+      daemonize_ = true;
+    } else if (0 == strcmp(argv[i], "--cert_file")) {
+      cert_file_ = argv[i+1];
+      ++i;
+    } else if (0 == strcmp(argv[i], "--key_file")) {
+      key_file_ = argv[i+1];
+      ++i;
     }
-
   }
 }
 
@@ -109,8 +126,7 @@ bool LDACmdLineFlags::CheckParallelTrainingValidity() {
   if (num_topics_ <= 1) {
     std::cerr << "num_topics must >= 2.\n";
     ret = false;
-  }
-  if (alpha_ <= 0) {
+  } if (alpha_ <= 0) {
     std::cerr << "alpha must > 0.\n";
     ret = false;
   }
@@ -146,6 +162,7 @@ bool LDACmdLineFlags::CheckInferringValidity() {
     std::cerr << "beta must > 0.\n";
     ret = false;
   }
+/*
   if (inference_data_file_.empty()) {
     std::cerr << "Invalid inference_data_file.\n";
     ret = false;
@@ -154,6 +171,7 @@ bool LDACmdLineFlags::CheckInferringValidity() {
     std::cerr << "Invalid inference_result_file.\n";
     ret = false;
   }
+*/
   if (model_file_.empty()) {
     std::cerr << "Invalid model_file.\n";
     ret = false;
@@ -164,6 +182,15 @@ bool LDACmdLineFlags::CheckInferringValidity() {
   }
   if (total_iterations_ <= burn_in_iterations_) {
     std::cerr << "total_iterations must > burn_in_iterations.\n";
+    ret = false;
+  }
+  if (src_sock_port_ <= 0) {
+    std::cerr << "src_sock_port must > 0.\n";
+    ret = false;
+  }
+  if ( ( key_file_.empty() && !cert_file_.empty()) ||
+       (!key_file_.empty() &&  cert_file_.empty()) ) {
+    std::cerr << "Both cert file and key file must be specified.\n";
     ret = false;
   }
   return ret;
