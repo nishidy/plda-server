@@ -13,6 +13,7 @@ def main():
 	parser.add_option("-f","--file",dest="filename",help="read data from FILENAME")
 	parser.add_option("-i","--dest_ip",dest="dest_ip",type="string",default="127.0.0.1",help="connect to DEST_IP")
 	parser.add_option("-p","--dest_port",dest="dest_port",type="int",default=5328,help="connect to DEST_PORT")
+	parser.add_option("-b","--buffer_size",dest="buffer_size",type="int",default=1024,help="read at once from network within BUFFER_SIZE")
 	parser.add_option("-v","--verbose",action="store_true",default=False,help="verbose")
 
 	(options, args) = parser.parse_args()
@@ -27,7 +28,7 @@ def main():
 	clientsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	clientsock.connect((server,port))
 
-	rcvbuf = 1024
+	rcvbuf = options.buffer_size
 	for line in open(options.filename,"r"):
 
 		stime=float(time())
@@ -43,14 +44,12 @@ def main():
 		etime=float(time())
 
 		if options.verbose:
-			print "Received from server[%s] (# of topics is %d): %s" % (server,len(rcvmsg.split()),rcvmsg)
-			print "%.3f sec elapsed to get the result." % (etime-stime)
-
+			print "Received %d bytes from server[%s] in %.3f sec (# of topics is %d):\n%s" %\
+				(len(rcvmsg),server,etime-stime,len(rcvmsg.split()),rcvmsg)
 
 	clientsock.close()
 
 
 if __name__ == "__main__":
 	main()
-
 
