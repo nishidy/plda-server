@@ -89,181 +89,179 @@ pid_t gettid(void)
 }
 
 struct inf_data {
-	int sock;
-	SSL *ssl;
-	string client_ip;
-	string res;
-	LDACmdLineFlags *flags;
-	map<string, int> *word_index_map;
-	LDAModel *model;
-	LDASampler *sampler;
+  int sock;
+  SSL *ssl;
+  string client_ip;
+  string res;
+  LDACmdLineFlags *flags;
+  map<string, int> *word_index_map;
+  LDAModel *model;
+  LDASampler *sampler;
 };
 
 void* infer(void* p){
 
-	struct inf_data* infdata = (struct inf_data*)p;
-	int dstSocket  = infdata->sock;
-	SSL *ssl = infdata->ssl;
-	string client_ip = infdata->client_ip;
+  struct inf_data* infdata = (struct inf_data*)p;
+  int dstSocket  = infdata->sock;
+  SSL *ssl = infdata->ssl;
+  string client_ip = infdata->client_ip;
 
-	map<string, int> *word_index_map = infdata->word_index_map;
-	LDAModel *model = infdata->model;
-	LDACmdLineFlags *flags = infdata->flags;
+  map<string, int> *word_index_map = infdata->word_index_map;
+  LDAModel *model = infdata->model;
+  LDACmdLineFlags *flags = infdata->flags;
 
-	int width;
-	fd_set mask;
+  int width;
+  fd_set mask;
 
-	FD_ZERO(&mask);
-	FD_SET(dstSocket, &mask);
-	width = dstSocket+1;
+  FD_ZERO(&mask);
+  FD_SET(dstSocket, &mask);
+  width = dstSocket+1;
 
-	pid_t tid=gettid();
-	if(flags->verbose_)
-		cout << "Thread id : " << tid << endl;
-
-
-	int n=0,numrcv=0;
-	char buf[LBUF] = {'\0'};
-	string line;
-	fd_set readok;
-
-	for(;;){
-
-		line.clear();
-
-		for(;;){
-
-			memcpy(&readok,&mask,sizeof(fd_set));
-
-			n = select(width, &readok, NULL, NULL, NULL);
-
-			if( n==-1 ) {
-				cerr << "@select: Error " << errno <<
-						" in a thread(" << tid << ")." << endl;
-				shutdown(dstSocket,SHUT_RDWR);
-				break;
-			}else if( n==0 ){
-				cerr << "@select: Timeout " << errno <<
-						" in a thread(" << tid << ")." << endl;
-				shutdown(dstSocket,SHUT_RDWR);
-				break;
-			}
-
-			if(!FD_ISSET(dstSocket,&readok))
-				continue;
-
-			memset(buf,'\0',LBUF);
-			if(ssl==NULL){
-				numrcv = read(dstSocket, buf, LBUF);
-			}else{
-				if(SSL_accept(ssl) <= 0){
-					ERR_print_errors_fp(stderr);
-					break;
-				}else{
-					numrcv = SSL_read(ssl, buf, sizeof(buf));
-				}
-			}
-
-			if( numrcv==-1 ){ // socket shutdowned
-				cout << "@read: Socket shutdowned(" << dstSocket << ")." << endl;
-				close(dstSocket);
-				break;
-			}else if( numrcv==0 ){ // socket closed
-				cout << "@read: Socket was closed(" << dstSocket << ")." << endl;
-				close(dstSocket);
-				break;
-			}
-
-			line += (string)buf;
-			// The end of data is '\n'
-			if(line.size()>0 && line.at(line.size()-1)=='\n'){
-				break;
-			}
-
-		} // select & read loop ends
-
-		if( n==0 || n==-1 ) break; // select error/timeout
-		if( numrcv==0 || numrcv==-1 ) break; // socket closed/shutdowned
+  pid_t tid=gettid();
+  if(flags->verbose_)
+     cout << "Thread id : " << tid << endl;
 
 
-		LDASampler sampler(flags->alpha_, flags->beta_, model, NULL);
+  int n=0,numrcv=0;
+  char buf[LBUF] = {'\0'};
+  string line;
+  fd_set readok;
 
-		if (line.size() > 0 &&	  // Skip empty lines.
-			line[0] != '\r' &&	  // Skip empty lines.
-			line[0] != '\n' &&	  // Skip empty lines.
-			line[0] != '#') {	   // Skip comment lines.
+  for(;;){
 
-			istringstream ss(line);
-			DocumentWordTopicsPB document_topics;
-			string word;
-			int count,term_count=0;
+    line.clear();
 
-			while (ss >> word >> count) {  // Load and init a document.
-				vector<int32> topics;
-				for (int i = 0; i < count; ++i) {
-					topics.push_back(RandInt(model->num_topics()));
-				}
+    for(;;){
 
-				map<string, int>::const_iterator iter = word_index_map->find(word);
-				if (iter != word_index_map->end()) {
-					document_topics.add_wordtopics(word, iter->second, topics);
-				}
-				term_count++;
-			}
+      memcpy(&readok,&mask,sizeof(fd_set));
 
-			if(flags->verbose_){
-				cout << "Received from client[" << client_ip << "] (# of terms is ";
-				cout << term_count << "): " << line << endl;
-			}
+      n = select(width, &readok, NULL, NULL, NULL);
+
+      if( n==-1 ) {
+        cerr << "@select: Error " << errno <<
+            " in a thread(" << tid << ")." << endl;
+        shutdown(dstSocket,SHUT_RDWR);
+        break;
+      }else if( n==0 ){
+        cerr << "@select: Timeout " << errno <<
+            " in a thread(" << tid << ")." << endl;
+        shutdown(dstSocket,SHUT_RDWR);
+        break;
+      }
+
+      if(!FD_ISSET(dstSocket,&readok))
+        continue;
+
+      memset(buf,'\0',LBUF);
+      if(ssl==NULL){
+        numrcv = read(dstSocket, buf, LBUF);
+      }else{
+        if(SSL_accept(ssl) <= 0){
+          ERR_print_errors_fp(stderr);
+          break;
+        }else{
+          numrcv = SSL_read(ssl, buf, sizeof(buf));
+        }
+      }
+
+      if( numrcv==-1 ){ // socket shutdowned
+        cout << "@read: Socket shutdowned(" << dstSocket << ")." << endl;
+        close(dstSocket);
+        break;
+      }else if( numrcv==0 ){ // socket closed
+        cout << "@read: Socket was closed(" << dstSocket << ")." << endl;
+        close(dstSocket);
+        break;
+      }
+
+      line += (string)buf;
+      // The end of data is '\n'
+      if(line.size()>0 && line.at(line.size()-1)=='\n'){
+        break;
+      }
+
+    } // select & read loop ends
+
+    if( n==0 || n==-1 ) break; // select error/timeout
+    if( numrcv==0 || numrcv==-1 ) break; // socket closed/shutdowned
 
 
-			LDADocument document(document_topics, model->num_topics());
-			TopicProbDistribution prob_dist(model->num_topics(), 0);
+    LDASampler sampler(flags->alpha_, flags->beta_, model, NULL);
 
-			for (int iter = 0; iter < flags->total_iterations_; ++iter) {
-				sampler.SampleNewTopicsForDocument(&document, false);
-				if (iter >= flags->burn_in_iterations_) {
-					const vector<int64>& document_distribution =
-					document.topic_distribution();
-					for (int i = 0; i < document_distribution.size(); ++i) {
-						prob_dist[i] += document_distribution[i];
-					}
-				}
-			}
+    if (line.size() > 0 &&    // Skip empty lines.
+      line[0] != '\r' &&    // Skip empty lines.
+      line[0] != '\n' &&    // Skip empty lines.
+      line[0] != '#') {     // Skip comment lines.
 
-			double d;
-			string out="";
-			for (int topic = 0; topic < prob_dist.size(); ++topic) {
-				char tmp[16] = {'\0'};
+      istringstream ss(line);
+      DocumentWordTopicsPB document_topics;
+      string word;
+      int count,term_count=0;
 
-				//Original code
-				//out << prob_dist[topic] /
-				//	  (flags.total_iterations_ - flags.burn_in_iterations_)
-				//	<< ((topic < prob_dist.size() - 1) ? " " : "\n");
+      while (ss >> word >> count) {  // Load and init a document.
+        vector<int32> topics;
+        for (int i = 0; i < count; ++i) {
+          topics.push_back(RandInt(model->num_topics()));
+        }
 
-				d = prob_dist[topic] /\
-					(flags->total_iterations_ - flags->burn_in_iterations_);
+        map<string, int>::const_iterator iter = word_index_map->find(word);
+        if (iter != word_index_map->end()) {
+          document_topics.add_wordtopics(word, iter->second, topics);
+        }
+        term_count++;
+      }
 
-				sprintf(tmp,"%.2f",d);
-				out += (string)tmp;
-				out += ((topic < prob_dist.size() - 1) ? " " : "\n");
-			}
+      if(flags->verbose_){
+        cout << "Received from client[" << client_ip << "] (# of terms is ";
+        cout << term_count << "): " << line << endl;
+      }
 
-			if(ssl==NULL){
-				write(dstSocket, out.c_str(), out.size());
-			}else{
-				SSL_write(ssl, out.c_str(), out.size());
-			}
 
-			break;
+      LDADocument document(document_topics, model->num_topics());
+      TopicProbDistribution prob_dist(model->num_topics(), 0);
 
-		} // if
+      for (int iter = 0; iter < flags->total_iterations_; ++iter) {
+        sampler.SampleNewTopicsForDocument(&document, false);
+        if (iter >= flags->burn_in_iterations_) {
+          const vector<int64>& document_distribution =
+          document.topic_distribution();
+          for (int i = 0; i < document_distribution.size(); ++i) {
+            prob_dist[i] += document_distribution[i];
+          }
+        }
+      }
 
-	} // for(;;)
+      double d;
+      string out="";
+      for (int topic = 0; topic < prob_dist.size(); ++topic) {
+        char tmp[16] = {'\0'};
 
-	close(dstSocket);
+        //Original code
+        //out << prob_dist[topic] /
+        //    (flags.total_iterations_ - flags.burn_in_iterations_)
+        //  << ((topic < prob_dist.size() - 1) ? " " : "\n");
 
-	return 0;
+        d = prob_dist[topic] /\
+          (flags->total_iterations_ - flags->burn_in_iterations_);
+
+        sprintf(tmp,"%.2f",d);
+        out += (string)tmp;
+        out += ((topic < prob_dist.size() - 1) ? " " : "\n");
+      }
+
+      if(ssl==NULL){
+        write(dstSocket, out.c_str(), out.size());
+      }else{
+        SSL_write(ssl, out.c_str(), out.size());
+      }
+
+    } // if
+
+  } // for(;;)
+
+  close(dstSocket);
+
+  return 0;
 }
 
 SSL* setup_ssl(string cert_file, string key_file){
@@ -273,24 +271,24 @@ SSL* setup_ssl(string cert_file, string key_file){
 
   SSL_CTX *ctx = SSL_CTX_new(TLSv1_server_method());
   if(ctx == NULL){
-	  ERR_print_errors_fp(stderr);
-	  return NULL;
+     ERR_print_errors_fp(stderr);
+     return NULL;
   }
 
   // Load certificate
   if( SSL_CTX_use_certificate_file(ctx,cert_file.c_str(),SSL_FILETYPE_PEM) <=0 ){
-	  ERR_print_errors_fp(stderr);
-	  return NULL;
+     ERR_print_errors_fp(stderr);
+     return NULL;
   }
 
   if( SSL_CTX_use_PrivateKey_file(ctx,key_file.c_str(),SSL_FILETYPE_PEM) <=0 ){
-	  ERR_print_errors_fp(stderr);
-	  return NULL;
+     ERR_print_errors_fp(stderr);
+     return NULL;
   }
 
   if( !SSL_CTX_check_private_key(ctx) ){
-	  fprintf(stderr, "Private key does not match the public certificate\n");
-	  return NULL;
+     fprintf(stderr, "Private key does not match the public certificate\n");
+     return NULL;
   }
 
   return SSL_new(ctx);
@@ -322,8 +320,8 @@ int main(int argc, char** argv) {
 
   SSL* ssl=NULL;
   if(!flags.cert_file_.empty()&&!flags.key_file_.empty()){
-	  ssl = setup_ssl(flags.cert_file_,flags.key_file_);
-	  if(ssl==NULL) exit(99);
+    ssl = setup_ssl(flags.cert_file_,flags.key_file_);
+    if(ssl==NULL) exit(99);
   }
 
   signal(SIGTERM, Finish);
@@ -367,22 +365,22 @@ int main(int argc, char** argv) {
         break;
     }
 
-	if(ssl!=NULL)
-		SSL_set_fd(ssl, dstSocket);
+    if(ssl!=NULL)
+       SSL_set_fd(ssl, dstSocket);
 
     {
-        struct inf_data infdata;
+       struct inf_data infdata;
 
-        infdata.sock = dstSocket;
-        infdata.ssl = ssl;
-		infdata.client_ip = inet_ntoa(dstAddr.sin_addr);
-        infdata.word_index_map = &word_index_map;
-        infdata.model = &model;
-        infdata.flags = &flags;
+       infdata.sock = dstSocket;
+       infdata.ssl = ssl;
+       infdata.client_ip = inet_ntoa(dstAddr.sin_addr);
+       infdata.word_index_map = &word_index_map;
+       infdata.model = &model;
+       infdata.flags = &flags;
 
-        pthread_t pt;
-        pthread_create(&pt,NULL,infer,(void *)&infdata);
-        pthread_detach(pt);
+       pthread_t pt;
+       pthread_create(&pt,NULL,infer,(void *)&infdata);
+       pthread_detach(pt);
     }
 
   }

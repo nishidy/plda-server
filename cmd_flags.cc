@@ -185,12 +185,16 @@ bool LDACmdLineFlags::CheckInferringValidity() {
     ret = false;
   }
   if (src_sock_port_ <= 0) {
-    std::cerr << "src_sock_port must > 0.\n";
-    ret = false;
+    std::cerr << "if src_sock_port is not specified, 5328 is used as default.\n";
+	src_sock_port_ = 5328;
+  }
+
+  if ( key_file_.empty() && cert_file_.empty() ) {
+    std::cerr << "cert_file and key_file are options to wrap socket with SSL.\n";
   }
   if ( ( key_file_.empty() && !cert_file_.empty()) ||
        (!key_file_.empty() &&  cert_file_.empty()) ) {
-    std::cerr << "Both cert file and key file must be specified.\n";
+    std::cerr << "Both cert_file and key_file must be specified.\n";
     ret = false;
   }
   return ret;
